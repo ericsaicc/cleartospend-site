@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClearToSpend — Don't track your spending. Guard your balance.</title>
+  <meta name="description" content="Know what's left to spend before your next paycheck — and see every bill coming for the next 6 months. $19.99 once. No subscription. Yours forever.">
+
+  <!-- Open Graph / Social sharing -->
+  <meta property="og:title" content="ClearToSpend — Don't track your spending. Guard your balance.">
+  <meta property="og:description" content="A forward-looking cash flow template for Google Sheets. $19.99 once. No subscription. Yours forever.">
+  <meta property="og:image" content="cover-cleartospend.png">
+  <meta property="og:url" content="https://cleartospend.com">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20560%20120%22%20width%3D%22560%22%20height%3D%22120%22%3E%3Crect%20x%3D%2216%22%20y%3D%2220%22%20width%3D%2280%22%20height%3D%2280%22%20rx%3D%2220%22%20fill%3D%22%231B8A4F%22/%3E%3Cpath%20d%3D%22M36%2062%20L52%2078%20L78%2044%22%20fill%3D%22none%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%229%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3Ctext%20x%3D%22116%22%20y%3D%2274%22%20font-family%3D%22Segoe%20UI%2C%20Arial%2C%20Helvetica%2C%20sans-serif%22%20font-size%3D%2246%22%20dominant-baseline%3D%22middle%22%3E%3Ctspan%20fill%3D%22%231B8A4F%22%20font-weight%3D%22700%22%3EClear%3C/tspan%3E%3Ctspan%20fill%3D%22%235F7A6C%22%20font-weight%3D%22400%22%3ETo%3C/tspan%3E%3Ctspan%20fill%3D%22%230E5C33%22%20font-weight%3D%22700%22%3ESpend%3C/tspan%3E%3C/text%3E%3C/svg%3E">
+
+  <style>
+    /* ── Reset ──────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+      background: #fff;
+      color: #1a1a1a;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Tokens ─────────────────────────────────────── */
+    :root {
+      --green:       #1B8A4F;
+      --green-dark:  #0E5C33;
+      --green-mid:   #5F7A6C;
+      --green-light: #E8F5EE;
+      --amber:       #FCF4D2;
+      --red:         #C0392B;
+      --gray-50:     #F9FAFB;
+      --gray-100:    #F3F7F5;
+      --gray-200:    #E2EAE6;
+      --gray-500:    #6B7280;
+      --gray-700:    #374151;
+      --gray-900:    #111827;
+    }
+
+    /* ── Type ───────────────────────────────────────── */
+    h1 { font-size: clamp(2rem, 5vw, 3.25rem); font-weight: 800; color: var(--green-dark); line-height: 1.15; }
+    h2 { font-size: clamp(1.5rem, 3vw, 2.25rem); font-weight: 700; color: var(--green-dark); line-height: 1.2; }
+    h3 { font-size: 1.2rem; font-weight: 700; color: var(--green-dark); }
+    p  { color: var(--gray-700); }
+
+    /* ── Layout ─────────────────────────────────────── */
+    .container  { max-width: 1100px; margin: 0 auto; padding: 0 28px; }
+    .section    { padding: 88px 0; }
+    .section--alt { background: var(--gray-100); }
+
+    /* ── Buttons ────────────────────────────────────── */
+    .btn {
+      display: inline-block;
+      padding: 14px 32px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      transition: filter .15s, transform .15s;
+      border: none;
+    }
+    .btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .btn-primary { background: var(--green); color: #fff; }
+    .btn-lg      { padding: 18px 44px; font-size: 1.1rem; }
+
+    /* ── Nav ────────────────────────────────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255,255,255,.96);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--gray-200);
+      padding: 14px 0;
+    }
+    .nav__inner { display: flex; align-items: center; justify-content: space-between; }
+    .nav__logo  { text-decoration: none; }
+    .nav__cta   { font-size: .9rem; padding: 10px 22px; }
+
+    /* ── Hero ───────────────────────────────────────── */
+    .hero { padding: 80px 0 64px; overflow: hidden; }
+    .hero__inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+    }
+    .hero__eyebrow {
+      font-size: .8rem; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--green); margin-bottom: 18px;
+    }
+    .hero__headline { margin-bottom: 20px; }
+    .hero__sub      { font-size: 1.1rem; color: var(--gray-500); margin-bottom: 36px; line-height: 1.75; }
+    .hero__footnote { margin-top: 14px; font-size: .875rem; color: var(--green-mid); font-weight: 500; }
+
+    /* browser mockup */
+    .mockup {
+      border-radius: 12px; overflow: hidden;
+      box-shadow: 0 28px 64px rgba(0,0,0,.14), 0 8px 20px rgba(0,0,0,.07);
+    }
+    .mockup__bar {
+      background: #d1d5db; padding: 10px 16px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .mockup__dot { width: 11px; height: 11px; border-radius: 50%; }
+    .mockup__dot:nth-child(1) { background: #fc6058; }
+    .mockup__dot:nth-child(2) { background: #fec02f; }
+    .mockup__dot:nth-child(3) { background: #2aca44; }
+    .mockup__url { flex: 1; background: #e5e7eb; border-radius: 4px; height: 18px; margin-left: 10px; }
+    .mockup img  { display: block; width: 100%; }
+
+    /* ── Problem ────────────────────────────────────── */
+    .problem__intro { font-size: 1.1rem; color: var(--gray-700); margin-bottom: 36px; }
+    .problem__grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .problem__card  {
+      background: #fff; border: 1px solid var(--gray-200);
+      border-left: 4px solid var(--green);
+      padding: 20px 22px; border-radius: 0 8px 8px 0;
+    }
+    .problem__card p { font-style: italic; font-size: .97rem; }
+    .problem__punch {
+      margin-top: 40px; text-align: center;
+      font-size: 1.15rem; font-weight: 600; color: var(--green-dark);
+    }
+
+    /* ── Answer ─────────────────────────────────────── */
+    .answer__inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+    }
+    .answer__question {
+      background: var(--green-light); border-left: 4px solid var(--green);
+      padding: 20px 24px; border-radius: 0 8px 8px 0;
+      font-size: 1.3rem; font-weight: 700; color: var(--green-dark);
+      line-height: 1.4; margin: 24px 0;
+    }
+    .steps { list-style: none; margin-top: 28px; }
+    .step  { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 22px; }
+    .step__num {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--green); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: .9rem; flex-shrink: 0;
+    }
+    .step__text { color: var(--gray-700); }
+    .step__text strong { color: var(--green-dark); }
+
+    /* ── Feature rows ───────────────────────────────── */
+    .features-section {}
+    .feat {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 64px; align-items: center;
+      padding: 64px 0;
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .feat:last-child { border-bottom: none; }
+    .feat--flip .feat__text { order: 2; }
+    .feat--flip .feat__img  { order: 1; }
+    .feat__kicker {
+      font-size: .78rem; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--green); margin-bottom: 10px;
+    }
+    .feat__title   { margin-bottom: 14px; }
+    .feat__body    { color: var(--gray-700); line-height: 1.75; margin-bottom: 16px; }
+    .feat__callout {
+      background: var(--green-light); border-radius: 8px;
+      padding: 14px 18px; font-size: .95rem; color: var(--green-dark); font-weight: 500;
+    }
+
+    /* ── Simple pills row ───────────────────────────── */
+    .pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-top: 44px; }
+    .pill  {
+      background: #fff; border: 1px solid var(--gray-200); border-radius: 40px;
+      padding: 14px 24px; display: flex; align-items: center; gap: 12px;
+    }
+    .pill__icon { font-size: 1.4rem; }
+    .pill__label { font-weight: 700; color: var(--green-dark); font-size: .95rem; }
+    .pill__sub   { font-size: .8rem; color: var(--gray-500); }
+
+    /* ── Credibility ────────────────────────────────── */
+    .cred__card {
+      max-width: 760px; margin: 0 auto;
+      background: #fff; border: 1px solid var(--gray-200);
+      border-radius: 16px; padding: 52px 48px; text-align: center;
+      box-shadow: 0 4px 24px rgba(0,0,0,.06);
+    }
+    .cred__logo {
+      width: 52px; height: 52px; margin: 0 auto 24px;
+      background: var(--green); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cred__quote {
+      font-size: 1.15rem; color: #1f2937; line-height: 1.85; margin-bottom: 24px;
+    }
+    .cred__attr { font-size: .9rem; color: var(--green-mid); font-weight: 600; }
+
+    /* ── Bundle / Pricing ───────────────────────────── */
+    .bundle__inner {
+      display: grid; grid-template-columns: 1fr 420px;
+      gap: 56px; align-items: start;
+    }
+    .bundle__sub { color: var(--gray-500); margin-top: 10px; margin-bottom: 32px; }
+    .bundle-list { list-style: none; }
+    .bundle-item {
+      display: flex; gap: 14px; align-items: flex-start;
+      padding: 16px 0; border-bottom: 1px solid var(--gray-200);
+    }
+    .bundle-item:last-child { border-bottom: none; }
+    .bundle-check {
+      width: 24px; height: 24px; background: var(--green); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;
+    }
+    .bundle-check svg { width: 12px; height: 12px; }
+    .bundle-item__name { font-weight: 700; color: var(--green-dark); font-size: .95rem; }
+    .bundle-item__desc { font-size: .85rem; color: var(--gray-500); margin-top: 2px; }
+
+    .price-card {
+      background: var(--green-dark); border-radius: 16px;
+      padding: 44px 36px; color: #fff; text-align: center;
+      position: sticky; top: 84px;
+    }
+    .price-card__num   { font-size: 3.75rem; font-weight: 800; line-height: 1; }
+    .price-card__once  { font-size: .95rem; color: rgba(255,255,255,.6); margin: 8px 0 32px; }
+    .price-card .btn-primary {
+      background: var(--green); width: 100%; text-align: center;
+      font-size: 1.05rem; padding: 16px; margin-bottom: 22px;
+    }
+    .price-perks { list-style: none; text-align: left; margin-top: 4px; }
+    .price-perk  {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 9px 0; font-size: .88rem; color: rgba(255,255,255,.8);
+      border-bottom: 1px solid rgba(255,255,255,.1);
+    }
+    .price-perk:last-child { border-bottom: none; }
+    .price-perk::before { content: '✓'; color: #6ee7a0; font-weight: 700; flex-shrink: 0; }
+    .price-card__guarantee {
+      margin-top: 22px; font-size: .82rem;
+      color: rgba(255,255,255,.55); line-height: 1.6;
+    }
+    .price-card__guarantee strong { color: rgba(255,255,255,.8); }
+
+    /* ── FAQ ────────────────────────────────────────── */
+    .faq__list { max-width: 740px; margin: 44px auto 0; }
+    .faq__item { border-bottom: 1px solid var(--gray-200); padding: 24px 0; }
+    .faq__q    { font-size: 1rem; font-weight: 700; color: var(--green-dark); margin-bottom: 8px; }
+    .faq__a    { font-size: .94rem; color: var(--gray-700); line-height: 1.7; }
+    .faq__a a  { color: var(--green); }
+
+    /* ── Final CTA ──────────────────────────────────── */
+    .final-cta {
+      background: var(--green-dark); text-align: center;
+      padding: 88px 28px;
+    }
+    .final-cta h2    { color: #fff; margin-bottom: 16px; }
+    .final-cta p     { color: rgba(255,255,255,.72); font-size: 1.1rem; margin-bottom: 36px; }
+    .final-cta .note { margin-top: 16px; font-size: .85rem; color: rgba(255,255,255,.4); }
+
+    /* ── Footer ─────────────────────────────────────── */
+    .footer { background: #07160E; padding: 40px 0; }
+    .footer__top {
+      display: flex; align-items: center;
+      justify-content: space-between; flex-wrap: wrap; gap: 16px;
+    }
+    .footer__left  { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
+    .footer a      { color: rgba(255,255,255,.55); text-decoration: none; font-size: .9rem; }
+    .footer a:hover { color: #fff; }
+    .footer__copy  { color: rgba(255,255,255,.4); font-size: .85rem; }
+    .footer__disclaimer {
+      margin-top: 20px; padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,.07);
+      font-size: .78rem; color: rgba(255,255,255,.3); line-height: 1.65;
+    }
+
+    /* ── Responsive ─────────────────────────────────── */
+    @media (max-width: 900px) {
+      .hero__inner, .answer__inner, .bundle__inner { grid-template-columns: 1fr; gap: 40px; }
+      .hero { padding: 52px 0 44px; }
+      .hero__screenshot { order: -1; }
+      .problem__grid { grid-template-columns: 1fr; }
+      .feat { grid-template-columns: 1fr; gap: 40px; padding: 48px 0; }
+      .feat--flip .feat__text, .feat--flip .feat__img { order: unset; }
+      .price-card { position: static; }
+    }
+    @media (max-width: 600px) {
+      .nav__cta   { display: none; }
+      .section    { padding: 64px 0; }
+      .cred__card { padding: 32px 22px; }
+      .price-card { padding: 36px 22px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════ NAV ════════════════════════════ -->
+<nav class="nav">
+  <div class="container">
+    <div class="nav__inner">
+      <a href="/" class="nav__logo" aria-label="ClearToSpend home">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 60" width="196" height="42">
+          <rect x="8" y="10" width="40" height="40" rx="10" fill="#1B8A4F"/>
+          <path d="M18 31 L26 39 L39 22" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <text x="58" y="37" font-family="Segoe UI,Arial,Helvetica,sans-serif" font-size="23" dominant-baseline="middle">
+            <tspan fill="#1B8A4F" font-weight="700">Clear</tspan><tspan fill="#5F7A6C" font-weight="400">To</tspan><tspan fill="#0E5C33" font-weight="700">Spend</tspan>
+          </text>
+        </svg>
+      </a>
+      <a href="#get" class="btn btn-primary nav__cta">Get it — $19.99</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ════════════════════════════ HERO ════════════════════════════ -->
+<section class="hero">
+  <div class="container">
+    <div class="hero__inner">
+      <div>
+        <div class="hero__eyebrow">Cash Flow Template for Google Sheets</div>
+        <h1 class="hero__headline">Don't track your spending.<br>Guard your balance.</h1>
+        <p class="hero__sub">Know what's left to spend before your next paycheck — and see every bill coming for the next 6 months.</p>
+        <a href="#get" class="btn btn-primary btn-lg">Get ClearToSpend — $19.99</a>
+        <p class="hero__footnote">One-time purchase · No subscription · Yours forever</p>
+      </div>
+      <div class="hero__screenshot">
+        <div class="mockup">
+          <div class="mockup__bar">
+            <div class="mockup__dot"></div>
+            <div class="mockup__dot"></div>
+            <div class="mockup__dot"></div>
+            <div class="mockup__url"></div>
+          </div>
+          <img src="dashboard-late.png" alt="ClearToSpend Dashboard showing $4,632 left to spend, with an overdue electric bill flagged red">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════ PROBLEM ════════════════════════════ -->
+<section class="section section--alt">
+  <div class="container">
+    <h2>Sound familiar?</h2>
+    <div class="problem__grid" style="margin-top:36px;">
+      <div class="problem__card">
+        <p>"I get paid Friday, but I have no idea what's safe to spend <em>today</em>."</p>
+      </div>
+      <div class="problem__card">
+        <p>"A $139 annual renewal just hit my card. I forgot it existed."</p>
+      </div>
+      <div class="problem__card">
+        <p>"My banking app tells me what I spent. It never warns me what's <em>about</em> to come out."</p>
+      </div>
+      <div class="problem__card">
+        <p>"Every budgeting tool I try wants my bank login and a monthly fee — then turns into a chore I abandon."</p>
+      </div>
+    </div>
+    <p class="problem__punch">Your bank balance isn't the problem.<br>The problem is everything that hasn't come out of it yet.</p>
+  </div>
+</section>
+
+<!-- ════════════════════════════ THE ANSWER ════════════════════════════ -->
+<section class="section">
+  <div class="container">
+    <div class="answer__inner">
+      <div>
+        <h2>One number answers the only question that matters day to day</h2>
+        <div class="answer__question">How much money do I have left to spend before my next paycheck?</div>
+        <p>ClearToSpend is a forward-looking cash flow template for Google Sheets. Open the Dashboard and you get one big number — your balance, minus every bill, savings transfer, and planned expense still coming out before payday, plus any pay landing before then.</p>
+        <p style="margin-top:14px;">Under it: every upcoming charge in date order, with anything overdue pinned red and marked <strong style="color:var(--red);">LATE</strong> until you deal with it.</p>
+        <p style="margin-top:14px;">Bank-sync apps show you yesterday. This shows you tomorrow.</p>
+        <ol class="steps">
+          <li class="step">
+            <div class="step__num">1</div>
+            <div class="step__text"><strong>Set it up once</strong> — your balance, your bills, your paychecks. About 30 minutes.</div>
+          </li>
+          <li class="step">
+            <div class="step__num">2</div>
+            <div class="step__text"><strong>Check in whenever you want</strong> — daily, before a purchase, when a bill clears. Update your balance, date the bills you've paid, read your number.</div>
+          </li>
+          <li class="step">
+            <div class="step__num">3</div>
+            <div class="step__text"><strong>Spend with a clear conscience.</strong> The number on the Dashboard is already safe — everything still owed before payday is subtracted.</div>
+          </li>
+        </ol>
+      </div>
+      <div>
+        <div class="mockup">
+          <div class="mockup__bar">
+            <div class="mockup__dot"></div>
+            <div class="mockup__dot"></div>
+            <div class="mockup__dot"></div>
+            <div class="mockup__url"></div>
+          </div>
+          <img src="dashboard-calm.png" alt="ClearToSpend Dashboard — calm state showing left to spend with all upcoming bills">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════ FEATURES ════════════════════════════ -->
+<section class="section section--alt">
+  <div class="container">
+    <h2 style="text-align:center; margin-bottom:8px;">Built for how money actually works</h2>
+    <p style="text-align:center; color:var(--gray-500); font-size:1.05rem;">No formulas to write. Type only in the amber cells; the engine does the rest.</p>
+
+    <div class="features-section" style="margin-top:16px;">
+
+      <!-- 6-Month Forecast -->
+      <div class="feat">
+        <div class="feat__text">
+          <div class="feat__kicker">6-Month Forecast</div>
+          <h3 class="feat__title">See trouble months before it arrives</h3>
+          <p class="feat__body">A payday-by-payday cascade of your balance through the next 6 months — every paycheck in, every bill out. The math runs all the way forward so tight stretches are visible weeks ahead.</p>
+          <p class="feat__body">There's one number worth watching above everything else:</p>
+          <div class="feat__callout">
+            <strong>Lowest projected balance</strong> — the lowest your balance will get in the next 6 months, and exactly when. If a tight month is coming, you'll see it long before it happens, while there's still time to do something about it.
+          </div>
+        </div>
+        <div class="feat__img">
+          <div class="mockup">
+            <div class="mockup__bar">
+              <div class="mockup__dot"></div><div class="mockup__dot"></div><div class="mockup__dot"></div>
+              <div class="mockup__url"></div>
+            </div>
+            <img src="forecast.png" alt="6-Month Forecast showing lowest projected balance of $4,632 and payday-by-payday cascade">
+          </div>
+        </div>
+      </div>
+
+      <!-- Auto-renew heads-up -->
+      <div class="feat feat--flip">
+        <div class="feat__text">
+          <div class="feat__kicker">Auto-Renew Heads-Up</div>
+          <h3 class="feat__title">No more surprise renewals</h3>
+          <p class="feat__body">Your yearly and quarterly bills surface on the Forecast <em>before</em> they charge. The $139 renewal you forgot about? You'll see it coming weeks out — not the morning your balance takes an unexplained hit.</p>
+          <div class="feat__callout">
+            This is the feature that pays for the template the first time it fires.
+          </div>
+        </div>
+        <div class="feat__img">
+          <div class="mockup">
+            <div class="mockup__bar">
+              <div class="mockup__dot"></div><div class="mockup__dot"></div><div class="mockup__dot"></div>
+              <div class="mockup__url"></div>
+            </div>
+            <img src="forecast-headsup.png" alt="Forecast heads-up section showing Amazon Prime annual renewal coming in September">
+          </div>
+        </div>
+      </div>
+
+      <!-- Pay-yourself-first savings -->
+      <div class="feat">
+        <div class="feat__text">
+          <div class="feat__kicker">Pay-Yourself-First Savings</div>
+          <h3 class="feat__title">Saving stops being whatever's left over</h3>
+          <p class="feat__body">Savings buckets appear on the Dashboard like bills you owe yourself — a % of income or a fixed amount per paycheck. They're subtracted from your LEFT TO SPEND number before you spend, not after.</p>
+          <div class="feat__callout">
+            Two incomes, different schedules? Mixed pay frequencies merge into one clean payday timeline, with weekend paydays shifting to Friday — just like your employer does.
+          </div>
+        </div>
+        <div class="feat__img">
+          <div class="mockup">
+            <div class="mockup__bar">
+              <div class="mockup__dot"></div><div class="mockup__dot"></div><div class="mockup__dot"></div>
+              <div class="mockup__url"></div>
+            </div>
+            <img src="savings.png" alt="Savings & Investments tab showing three savings buckets with % of income">
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════ NO BANK / PRIVACY ════════════════════════════ -->
+<section class="section">
+  <div class="container" style="text-align:center;">
+    <h2>Yours. Actually yours.</h2>
+    <p style="margin-top:16px; font-size:1.05rem; color:var(--gray-500); max-width:640px; margin-left:auto; margin-right:auto; line-height:1.8;">A Google Sheet in <em>your</em> Drive that nobody can see but you — built with plain formulas, zero scripts, nothing to break when you copy it.</p>
+    <div class="pills">
+      <div class="pill">
+        <span class="pill__icon">🔒</span>
+        <div>
+          <div class="pill__label">No bank connection</div>
+          <div class="pill__sub">Your data stays in your Drive</div>
+        </div>
+      </div>
+      <div class="pill">
+        <span class="pill__icon">✏️</span>
+        <div>
+          <div class="pill__label">No formulas to write</div>
+          <div class="pill__sub">Type only in amber cells</div>
+        </div>
+      </div>
+      <div class="pill">
+        <span class="pill__icon">💳</span>
+        <div>
+          <div class="pill__label">No subscription</div>
+          <div class="pill__sub">$19.99 once, yours forever</div>
+        </div>
+      </div>
+      <div class="pill">
+        <span class="pill__icon">📋</span>
+        <div>
+          <div class="pill__label">60 bill slots</div>
+          <div class="pill__sub">Weekly to annual, any mix</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════ CREDIBILITY ════════════════════════════ -->
+<section class="section section--alt">
+  <div class="container">
+    <div class="cred__card">
+      <div class="cred__logo">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <path d="M6 14 L12 20 L22 9" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <p class="cred__quote">"Built by an accountant who runs his own household on it. A two-income household with pay schedules that don't line up, every bill, subscription, and planned expense — this template was built, broken, and rebuilt on real family finances. It isn't a pretty calculator; it's the tool I check before we spend money."</p>
+      <p class="cred__attr">— Eric, Accountant &amp; creator of ClearToSpend</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════ BUNDLE + PRICING ════════════════════════════ -->
+<section id="get" class="section">
+  <div class="container">
+    <div class="bundle__inner">
+
+      <div>
+        <h2>Everything you need, instant download</h2>
+        <p class="bundle__sub">Works with your existing free Google Sheets account — no new tools, no setup fees.</p>
+        <ul class="bundle-list">
+          <li class="bundle-item">
+            <div class="bundle-check">
+              <svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div>
+              <div class="bundle-item__name">The ClearToSpend Template</div>
+              <div class="bundle-item__desc">Copy-to-your-Drive link — fully working in free Google Sheets</div>
+            </div>
+          </li>
+          <li class="bundle-item">
+            <div class="bundle-check">
+              <svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div>
+              <div class="bundle-item__name">Setup Guide (PDF)</div>
+              <div class="bundle-item__desc">30-minute first setup, the check-in routine, every tab explained, FAQ</div>
+            </div>
+          </li>
+          <li class="bundle-item">
+            <div class="bundle-check">
+              <svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div>
+              <div class="bundle-item__name">Start Here (PDF)</div>
+              <div class="bundle-item__desc">One page — from purchase to working sheet in minutes</div>
+            </div>
+          </li>
+          <li class="bundle-item">
+            <div class="bundle-check">
+              <svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div>
+              <div class="bundle-item__name">Courtesy Excel Version (.xlsx)</div>
+              <div class="bundle-item__desc">Google Sheets is the supported home, but the file is yours to keep</div>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="price-card">
+        <div class="price-card__num">$19.99</div>
+        <div class="price-card__once">One-time · No subscription · Yours forever</div>
+        <a href="https://ericsaicc.gumroad.com/l/cleartospend" class="btn btn-primary">Get ClearToSpend →</a>
+        <ul class="price-perks">
+          <li class="price-perk">Template + 3 companion files</li>
+          <li class="price-perk">Instant download via Gumroad</li>
+          <li class="price-perk">Works with free Google Sheets</li>
+          <li class="price-perk">No bank connection required</li>
+          <li class="price-perk">Email support included</li>
+        </ul>
+        <p class="price-card__guarantee">
+          <strong>Works-as-promised guarantee.</strong> If something doesn't work the way this page says, email <a href="mailto:support@cleartospend.com" style="color:rgba(255,255,255,.6);">support@cleartospend.com</a> with a screenshot and we fix it free.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════ FAQ ════════════════════════════ -->
+<section class="section section--alt">
+  <div class="container">
+    <h2 style="text-align:center;">Questions</h2>
+    <div class="faq__list">
+      <div class="faq__item">
+        <div class="faq__q">Do I need to connect my bank?</div>
+        <div class="faq__a">No. Nothing connects to anything. You type your balance in — that's the whole integration. Your financial data never leaves your own Google Drive.</div>
+      </div>
+      <div class="faq__item">
+        <div class="faq__q">Do I need to know spreadsheet formulas?</div>
+        <div class="faq__a">No. You only ever type into the amber input cells — names, dates, amounts. Everything else computes itself.</div>
+      </div>
+      <div class="faq__item">
+        <div class="faq__q">Does it work with my pay schedule?</div>
+        <div class="faq__a">Weekly, bi-weekly, semi-monthly, or monthly — and multiple incomes on different schedules merge into one clean timeline. Bills can be any of six frequencies from weekly to annual.</div>
+      </div>
+      <div class="faq__item">
+        <div class="faq__q">How long does setup take?</div>
+        <div class="faq__a">About 30 minutes to enter your bills, income, and balance. After that, checking in takes about a minute, whenever you choose to do it.</div>
+      </div>
+      <div class="faq__item">
+        <div class="faq__q">Do I need to buy anything else?</div>
+        <div class="faq__a">No. Google Sheets is free. There's no premium tier, no add-on, no renewal.</div>
+      </div>
+      <div class="faq__item">
+        <div class="faq__q">What about Excel?</div>
+        <div class="faq__a">A courtesy .xlsx is included and the formulas are Excel-compatible, but Google Sheets is the supported version.</div>
+      </div>
+      <div class="faq__item">
+        <div class="faq__q">What if I have a problem?</div>
+        <div class="faq__a">Email <a href="mailto:support@cleartospend.com">support@cleartospend.com</a>. Works-as-promised: if it's broken, we fix it free.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════ FINAL CTA ════════════════════════════ -->
+<section class="final-cta">
+  <div class="container">
+    <h2>Stop opening your banking app and guessing.</h2>
+    <p>Open one sheet, see one number, and know.</p>
+    <a href="https://ericsaicc.gumroad.com/l/cleartospend" class="btn btn-primary btn-lg">Get ClearToSpend — $19.99</a>
+    <p class="note">$19.99 once · No subscription · Yours forever</p>
+  </div>
+</section>
+
+<!-- ════════════════════════════ FOOTER ════════════════════════════ -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer__top">
+      <div class="footer__left">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 60" width="140" height="30">
+          <rect x="8" y="10" width="40" height="40" rx="10" fill="#1B8A4F"/>
+          <path d="M18 31 L26 39 L39 22" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <text x="58" y="37" font-family="Segoe UI,Arial,Helvetica,sans-serif" font-size="23" dominant-baseline="middle">
+            <tspan fill="#6ee7a0" font-weight="700">Clear</tspan><tspan fill="#5F7A6C" font-weight="400">To</tspan><tspan fill="#a7f3d0" font-weight="700">Spend</tspan>
+          </text>
+        </svg>
+        <a href="mailto:support@cleartospend.com">support@cleartospend.com</a>
+      </div>
+      <span class="footer__copy">© 2026 ClearToSpend</span>
+    </div>
+    <div class="footer__disclaimer">
+      ClearToSpend is a planning tool, not financial advice. It organizes the numbers you give it; decisions about your money are yours. For advice about your situation, talk to a qualified financial professional. &nbsp;·&nbsp; ClearToSpend is an instant digital download — all sales are final. If anything doesn't work as described, email support@cleartospend.com and we fix it free.
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
